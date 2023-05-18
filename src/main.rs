@@ -115,22 +115,20 @@ pub fn get_node(node_map: &NodeMap, index: usize) -> Node {
 
 
 pub async fn insert_value(
-    node_map: &mut NodeMap,
-    index: usize,
+    node: &mut Node,
     key: String,
     value: TransactionData,
 ) {
     let key = get_key(&key);
-    node_map.get_mut(&index).unwrap().insert(key, &value);
+    node.insert(key, &value);
 }
 
 pub async fn get_value(
-    node_map: &mut NodeMap,
-    index: usize,
+    node: &mut Node,
     key: String,
 ) -> Option<TransactionData> {
     let key = get_key(&key);
-    node_map.get_mut(&index).unwrap().get(&key)
+    node.get(&key)
 }
 
 
@@ -156,7 +154,7 @@ enum CustomHttpResponse {
     GeneralError
 }
 
-type Transactions = Mutex<HashMap<String, TransactionData>>;
+type Transactions = Mutex<Node>;
 
 fn custom_http_response(response: CustomHttpResponse) -> HttpResponse {
     match response {
@@ -180,8 +178,8 @@ async fn process_transaction(
         return custom_http_response(CustomHttpResponse::InvalidSignature)
     }
 
-    let mut transactions: std::sync::MutexGuard<HashMap<String, TransactionData>> = transactions.lock().unwrap();
-    transactions.insert(transaction_data.send_block.clone(), transaction_data.into_inner());
+    let mut transactions: std::sync::MutexGuard<Node> = transactions.lock().unwrap();
+    insert_value(&mut transactions, transaction_data.send_block.clone(), transaction_data.into_inner()).await;
     custom_http_response(CustomHttpResponse::TransactionProcessed)
 }
 
@@ -193,8 +191,9 @@ async fn read_transaction(
         return custom_http_response(CustomHttpResponse::InvalidSignature)
     }
 
-    let transactions: std::sync::MutexGuard<HashMap<String, TransactionData>> = transactions.lock().unwrap();
-    match transactions.get(&read_request.send_block) {
+    let mut transactions: std::sync::MutexGuard<Node> = transactions.lock().unwrap();
+    let maybe_value = get_value(&mut transactions, read_request.receive_block.clone()).await;
+    match maybe_value {
         Some(transaction_data) => {
             let transaction_data = ReadResponse {
                 payload: transaction_data.payload.clone(),
