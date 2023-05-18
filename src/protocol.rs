@@ -1,6 +1,7 @@
 use crate::key::Key;
 use crate::node::node_data::NodeData;
 use crate::MESSAGE_LENGTH;
+use crate::storage::TransactionData;
 use bincode;
 use log::{log, warn};
 use serde_derive::{Deserialize, Serialize};
@@ -28,7 +29,7 @@ pub struct Request {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum RequestPayload {
     Ping,
-    Store(Key, String),
+    Store(Key, TransactionData),
     FindNode(Key),
     FindValue(Key),
 }
@@ -48,7 +49,7 @@ pub struct Response {
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum ResponsePayload {
     Nodes(Vec<NodeData>),
-    Value(String),
+    Value(TransactionData),
     Pong,
 }
 

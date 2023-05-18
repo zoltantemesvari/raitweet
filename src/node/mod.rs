@@ -4,7 +4,7 @@ use crate::key::Key;
 use crate::node::node_data::{NodeData, NodeDataDistancePair};
 use crate::protocol::{Message, Protocol, Request, RequestPayload, Response, ResponsePayload};
 use crate::routing::RoutingTable;
-use crate::storage::Storage;
+use crate::storage::{Storage, TransactionData};
 use crate::{
     BUCKET_REFRESH_INTERVAL, CONCURRENCY_PARAM, KEY_LENGTH, REPLICATION_PARAM, REQUEST_TIMEOUT,
 };
@@ -265,7 +265,7 @@ impl Node {
     }
 
     /// Sends a `STORE` RPC.
-    fn rpc_store(&mut self, dest: &NodeData, key: Key, value: String) -> Option<Response> {
+    fn rpc_store(&mut self, dest: &NodeData, key: Key, value: TransactionData) -> Option<Response> {
         self.send_request(dest, RequestPayload::Store(key, value))
     }
 
@@ -456,12 +456,12 @@ impl Node {
     }
 
     /// Inserts a key-value pair into the DHT.
-    pub fn insert(&mut self, key: Key, value: &str) {
+    pub fn insert(&mut self, key: Key, value: &TransactionData) {
         if let ResponsePayload::Nodes(nodes) = self.lookup_nodes(&key, true) {
             for dest in nodes {
                 let mut node = self.clone();
                 let key_clone = key;
-                let value_clone = value.to_string();
+                let value_clone = value.clone();
                 thread::spawn(move || {
                     node.rpc_store(&dest, key_clone, value_clone);
                 });
@@ -470,17 +470,17 @@ impl Node {
     }
 
     /// Stores a key-value pair into DHT if it is not already existing with the same value, then broadcasts it to all connected nodes
-    fn store_and_broadcast(&mut self, key: Key, value: &String) {
+    fn store_and_broadcast(&mut self, key: Key, value: &TransactionData) {
         let mut binding = self.storage.lock().unwrap();
         let found_value = binding.get(&key);
         match found_value {
             Some(new_value) => if new_value == value {
                 return
             } else {
-                binding.insert(key, value.to_string());
+                binding.insert(key, value.clone());
             }
             None => {
-                binding.insert(key, value.to_string());
+                binding.insert(key, value.clone());
             }
         }
         drop(binding);
@@ -499,12 +499,12 @@ impl Node {
 
     /// Gets the value associated with a particular key in the DHT. Returns `None` if the key was
     /// not found.
-    pub fn get(&mut self, key: &Key) -> Option<String> {
+    pub fn get(&mut self, key: &Key) -> Option<TransactionData> {
         let mut binding = self.storage.lock().unwrap();
         let found_value = binding.get(&key);
         match found_value {
             Some(new_value) => 
-                return Some(new_value.to_string()),
+                return Some(new_value.clone()),
             None => {
                 drop(binding);
                 if let ResponsePayload::Value(value) = self.lookup_nodes(key, false) {

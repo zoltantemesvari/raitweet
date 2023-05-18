@@ -4,13 +4,26 @@ use log::{info, log};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::mem;
 use time::{Duration, SteadyTime};
+use serde::{Deserialize, Serialize};
+use std::sync::Mutex;
 
 /// A simple storage container that removes stale items.
 ///
 /// `Storage` will remove a item if it is older than `KEY_EXPIRATION` seconds.
+/// 
+
+#[derive(Deserialize, Serialize, Debug, Clone, PartialEq, Eq, Hash)]
+pub struct TransactionData {
+    pub send_block: String,
+    pub payload: String,
+    pub payload_hash: String,
+    pub signature: String,
+}
+
+
 #[derive(Default)]
 pub struct Storage {
-    items: HashMap<Key, (String, SteadyTime)>,
+    items: HashMap<Key, (TransactionData, SteadyTime)>,
     publish_times: BTreeMap<SteadyTime, HashSet<Key>>,
 }
 
@@ -39,7 +52,7 @@ impl Storage {
     }
 
     /// Inserts an item into `Storage`.
-    pub fn insert(&mut self, key: Key, value: String) {
+    pub fn insert(&mut self, key: Key, value: TransactionData) {
         self.remove_expired();
         let curr_time = SteadyTime::now();
 
@@ -57,7 +70,7 @@ impl Storage {
 
     /// Returns the value associated with `key`. Returns `None` if such a key does not exist in
     /// `Storage`.
-    pub fn get(&mut self, key: &Key) -> Option<&String> {
+    pub fn get(&mut self, key: &Key) -> Option<&TransactionData> {
         self.remove_expired();
         self.items.get(key).map(|entry| &entry.0)
     }

@@ -5,8 +5,10 @@ use simplelog::{CombinedLogger, Config, Level, LevelFilter, TermLogger};
 use std::collections::HashMap;
 use std::convert::AsMut;
 use std::io;
+use tokio::sync::Mutex;
 
-use kademlia_dht::{Key, Node};
+
+mod node; 
 
   // let logger_config = Config {
    //     time: Some(Level::Error),
@@ -21,9 +23,9 @@ use kademlia_dht::{Key, Node};
    // .unwrap();
 
 
-const NUMBER_OF_NODES: usize = 33;
 
-type NodeMap = Arc<Mutex<HashMap<usize, Node>>>;
+
+type NodeMap = Mutex<HashMap<usize, Node>>;
 
 fn clone_into_array<A, T>(slice: &[T]) -> A
 where
@@ -84,9 +86,10 @@ pub fn get_node_id(node_map: &NodeMap, index: usize) -> usize {
 pub async fn insert_value(
     node_map: &NodeMap,
     index: usize,
-    key: Key,
+    key: String,
     value: String,
 ) {
+    let key = get_key(&key);
     let mut node_map = node_map.lock().unwrap();
     node_map.get_mut(&index).unwrap().insert(key, value);
 }
@@ -94,8 +97,9 @@ pub async fn insert_value(
 pub async fn get_value(
     node_map: &NodeMap,
     index: usize,
-    key: Key,
+    key: String,
 ) -> Option<String> {
+    let key = get_key(&key);
     let node_map = node_map.lock().unwrap();
     node_map.get(&index).unwrap().get(&key)
 }
