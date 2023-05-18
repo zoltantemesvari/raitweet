@@ -185,14 +185,14 @@ async fn process_transaction(
 
 async fn read_transaction(
     read_request: web::Json<ReadRequest>,
-    transactions: web::Data<Transactions>,
+    transactions2: web::Data<Transactions>,
 ) -> impl Responder {
     if !validate_signature(&read_request) {
         return custom_http_response(CustomHttpResponse::InvalidSignature)
     }
 
-    let mut transactions: std::sync::MutexGuard<Node> = transactions.lock().unwrap();
-    let maybe_value = get_value(&mut transactions, read_request.receive_block.clone()).await;
+    let mut transactions: std::sync::MutexGuard<Node> = transactions2.lock().unwrap();
+    let maybe_value = get_value(&mut transactions, read_request.send_block.clone()).await;
     match maybe_value {
         Some(transaction_data) => {
             let transaction_data = ReadResponse {
@@ -227,12 +227,12 @@ fn validate_signature<T: Serialize>(_data: &T) -> bool {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
-    
-    // let transactions: web::Data<Mutex<HashMap<String, TransactionData>>> = web::Data::new(Transactions::new(HashMap::new()));
 
     let node_map = create_network(NUMBER_OF_NODES);
     let node = get_node(&node_map, 1);
     let transactions = web::Data::new(Mutex::new(node));
+    let node2 = get_node(&node_map, 5);
+    let transactions2 = web::Data::new(Mutex::new(node2));
 
     println!("Starting server at http://localhost:8080");
 
@@ -241,6 +241,7 @@ async fn main() -> std::io::Result<()> {
         
         App::new()
             .app_data(transactions.clone())
+            .app_data(transactions2.clone())
             .service(web::resource("/send").route(web::post().to(process_transaction)))
             .service(web::resource("/receive").route(web::post().to(read_transaction)))
     })

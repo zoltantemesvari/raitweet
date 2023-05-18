@@ -5,7 +5,6 @@ use std::collections::{BTreeMap, HashMap, HashSet};
 use std::mem;
 use time::{Duration, SteadyTime};
 use serde::{Deserialize, Serialize};
-use std::sync::Mutex;
 
 /// A simple storage container that removes stale items.
 ///
