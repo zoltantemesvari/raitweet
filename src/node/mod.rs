@@ -21,7 +21,7 @@ use std::time::Duration;
 /// A node in the Kademlia DHT.
 #[derive(Clone)]
 pub struct Node {
-    node_data: Arc<NodeData>,
+    pub node_data: Arc<NodeData>,
     routing_table: Arc<Mutex<RoutingTable>>,
     storage: Arc<Mutex<Storage>>,
     pending_requests: Arc<Mutex<HashMap<Key, Sender<Response>>>>,

@@ -1,3 +1,3 @@
 # Raitweet
 
-This is a P2P meesaging system to complement Nano Node. WIP.
+This is a P2P messaging system to complement Nano Node. WIP.

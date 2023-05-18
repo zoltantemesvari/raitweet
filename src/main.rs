@@ -230,8 +230,10 @@ async fn main() -> std::io::Result<()> {
 
     let node_map = create_network(NUMBER_OF_NODES);
     let node = get_node(&node_map, 1);
+    println!("{}", format!("{:?}", node.node_data()));
     let transactions = web::Data::new(Mutex::new(node));
     let node2 = get_node(&node_map, 5);
+    println!("{}", format!("{:?}", node2.node_data()));
     let transactions2 = web::Data::new(Mutex::new(node2));
 
     println!("Starting server at http://localhost:8080");
